@@ -34,14 +34,8 @@ programs = {
 }
 
 # Шаблоны резюме
-templates = {
-    "GP": "...текст шаблона GP...",
-    "BT": programs["BT"],  # вставляем уже готовый текст из programs
-    "GD Полина Ганжара": "...текст шаблона Ганжара...",
-    "GD Ксения Исламова": "...текст шаблона Исламова...",
-    "Specialist Гинеколог": "...текст шаблона Гинеколог...",
-    "Резидентура": "...текст шаблона Резидентура..."
-}
+with open("templates.json", "r", encoding="utf-8") as f:
+    templates = json.load(f)
 
 # Клавиатура
 template_keyboard = [[key] for key in templates]
