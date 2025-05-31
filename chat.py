@@ -76,8 +76,7 @@ async def handle_program_request(update: Update, context: ContextTypes.DEFAULT_T
         await update.message.reply_text("Пожалуйста, выбери одну из доступных программ.")
 
 program_buttons = [[key] for key in programs.keys()]
-keyboard = ReplyKeyboardMarkup(program_buttons, one_time_keyboard=True, resize_keyboard=True)
-await update.message.reply_text("Выберите программу курса:", reply_markup=keyboard)
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привет! Выбери, что хочешь сделать:",
