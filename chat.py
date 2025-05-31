@@ -1,4 +1,3 @@
-
 import json
 import os
 import logging
@@ -100,13 +99,10 @@ async def nurse_license(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message = "⛔️ Вы можете попробовать податься на Beauty Therapist."
 
     await update.message.reply_text(
-        message + "
-
-⬅️ Вернуться в главное меню:",
+        message + "\n\n⬅️ Вернуться в главное меню:",
         reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
     )
     return CHOOSING
-
 async def education(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.lower()
     context.user_data['education'] = text
@@ -172,9 +168,7 @@ async def from_russia(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['from_russia'] = (update.message.text.lower() == "да")
     result = determine_license(context.user_data)
     await update.message.reply_text(
-        result + "
-
-⬅️ Вернуться в главное меню:",
+        result + "\n\n⬅️ Вернуться в главное меню:",
         reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
     )
     return CHOOSING
@@ -221,22 +215,16 @@ def determine_license(data):
                 return "⛔️ Пока не проходите ни на одну лицензию."
 
     return "⛔️ Пока не проходите ни на одну лицензию."
-
-# --- Шаблоны / Программы ---
 async def send_template(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        templates.get(update.message.text, "⚠️ Шаблон не найден.") + "
-
-⬅️ Вернуться в главное меню:",
+        templates.get(update.message.text, "⚠️ Шаблон не найден.") + "\n\n⬅️ Вернуться в главное меню:",
         reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
     )
     return CHOOSING
 
 async def send_program(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        programs.get(update.message.text, "⚠️ Программа не найдена.") + "
-
-⬅️ Вернуться в главное меню:",
+        programs.get(update.message.text, "⚠️ Программа не найдена.") + "\n\n⬅️ Вернуться в главное меню:",
         reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
     )
     return CHOOSING
