@@ -1,9 +1,9 @@
 import os
 from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters, ConversationHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ConversationHandler, ContextTypes, filters
 
-# Состояния диалога
 (
+    MAIN_MENU,
     PROFESSION,
     EDUCATION,
     SPECIALITY_CHECK,
@@ -12,7 +12,9 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Con
     POSTGRADUATE_YEARS,
     ACCREDITATION,
     FROM_RUSSIA,
-) = range(8)
+    RESUME_TEMPLATE_CHOICE,
+    COURSE_PROGRAM_CHOICE,
+) = range(11)
 
 SPECIALITIES_GP = [
     "Терапевт", "Кардиология", "Реаниматология", "Скорая медицинская помощь",
@@ -26,175 +28,98 @@ POSTGRADUATE_OPTIONS = [
     "Аспирантура и КМН"
 ]
 
+RESUME_TEMPLATES = {
+    "GP": "Обучение проходит на платформе геткурс, где будет доступ к материалам и записям лекций...\n(далее текст шаблона GP)",
+    "BT": "В начале идет подготовка к сдаче экзамена, называется Prometric Exam...\n(далее текст шаблона BT)",
+    "GD Полина Ганжара": "Программа: 20 занятий по 2 часа, теория на русском, практика на английском...\n(далее текст GD Полина)",
+    "GD Ксения Исламова": "54 мини-урока по 30 минут — максимум пользы при минимуме времени...\n(далее текст GD Ксения)",
+    "Specialist Гинеколог": "Добрый день! Отправляю вам подробности по интенсивному курсу по акушерству и гинекологии...\n(далее текст Specialist Гинеколог)",
+    "Резидентура": "Пакет 'Поступление в резидентуру' включает...\n(далее текст резидентура)",
+}
+
+COURSE_PROGRAMS = {
+    "GP": "Разбор основных дисциплин: Кардиология, Пульмонология, Хирургия, Маммология...",
+    "BT": "Ссылка на программу - https://clck.ru/3FAPvx",
+    "GD Полина Ганжара": "Патология полости рта: норма, травма, наследственная патология слизистой...",
+    "Specialist Гинеколог": "Занятие 1: Анатомия, физиология и фармакология в акушерстве...",
+    "Spec Дерматолог": "Basic dermatology, Histology, Drugs overview, Acne vulgaris, rosacea...",
+    "Spec Кардиолог": "Hypertension. Main steps of treatment. Structure of the heart...",
+    "Spec Семейная Медицина": "Занятие 1: Артериальная гипертензия, ИБС, СН, ЭКГ...",
+    "Spec Внутренняя Медицина": "Занятие 1: ИБС, инфаркт, гипертензия, ЭКГ, кардиомиопатии...",
+    "Spec Педиатр": "Milestone+vaccination, Neonatology, Syndroms, Nephrology, Cardio...",
+    "Хирург": "Острый живот, пищевод, желудок, кишечник, печень, поджелудочная...",
+    "Эндокринолог": "Диабет, ожирение, тиреоидиты, гипофиз, надпочечники, витамин D...",
+    "Spec Отолоринголог": "Отоневрология, аудиология, ринология, экстренные состояния...",
+    "Spec Травматолог": "Ортопедия, травмы, артрозы, спортивные травмы, опухоли, финальный тест...",
+    "Spec Уролог": "Хирургия, инфекции, МКБ, ПН, опухоли, педиатрическая урология...",
+    "Spec Пластический хирург": "Wound repair, Anesthesia, Burns, Head and Neck, Breast, Safety...",
+    "Spec Сосудистый хирург": "Vasculitis, thrombosis, anatomy, ischemia, diabetes, endovascular...",
+    "Spec Невролог": "Инсульт, эпилепсия, когнитивные, иммунные, мышечные, финальный обзор...",
+    "Spec Анестезиолог": "Airway, Neuro/Cardiac anesthesia, Pediatrics, Ethics, Pain, NORA...",
+}
+
+# Главное меню
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [["врач", "стоматолог"]]
+    keyboard = [["Узнать лицензию"], ["Шаблоны резюмирования"], ["Программа курса"]]
     await update.message.reply_text(
-        "Здравствуйте! Вы являетесь врачом или стоматологом?",
+        "Выберите, что вы хотите сделать:",
         reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
     )
-    return PROFESSION
+    return MAIN_MENU
 
-async def profession(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['profession'] = update.message.text.lower()
-    keyboard = [["да", "нет"]]
-    await update.message.reply_text(
-        "У вас есть высшее образование?",
-        reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-    )
-    return EDUCATION
-
-async def education(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.lower()
-    context.user_data['education'] = text
-    if text == "да":
-        if context.user_data['profession'] == "врач":
-            keyboard = [["да", "нет"]]
-            await update.message.reply_text(
-                "Ваша специальность одна из: " + ", ".join(SPECIALITIES_GP) + "?",
-                reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-            )
-            return SPECIALITY_CHECK
-        else:
-            # Для стоматолога сразу спрашиваем опыт
-            await update.message.reply_text("Сколько лет у вас стоматологического стажа?")
-            return EXPERIENCE
+async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    choice = update.message.text
+    if choice == "Узнать лицензию":
+        keyboard = [["врач", "стоматолог"]]
+        await update.message.reply_text(
+            "Здравствуйте! Вы являетесь врачом или стоматологом?",
+            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+        )
+        return PROFESSION
+    elif choice == "Шаблоны резюмирования":
+        keyboard = [[key] for key in RESUME_TEMPLATES.keys()]
+        await update.message.reply_text(
+            "Выберите шаблон резюмирования:",
+            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+        )
+        return RESUME_TEMPLATE_CHOICE
+    elif choice == "Программа курса":
+        keyboard = [[key] for key in COURSE_PROGRAMS.keys()]
+        await update.message.reply_text(
+            "Выберите курс, для которого хотите получить программу:",
+            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+        )
+        return COURSE_PROGRAM_CHOICE
     else:
-        await update.message.reply_text("К сожалению, без высшего образования лицензия невозможна.")
-        return ConversationHandler.END
+        await update.message.reply_text("Пожалуйста, выберите один из предложенных вариантов.")
+        return MAIN_MENU
 
-async def speciality_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.lower()
-    context.user_data['speciality_match'] = (text == "да")
-    await update.message.reply_text("Сколько лет у вас стажа по специальности?")
-    return EXPERIENCE
-
-async def experience(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        exp = int(update.message.text)
-    except ValueError:
-        await update.message.reply_text("Пожалуйста, введите число.")
-        return EXPERIENCE
-    context.user_data['experience'] = exp
-
-    if context.user_data['profession'] == "врач":
-        keyboard = [POSTGRADUATE_OPTIONS]
-        await update.message.reply_text(
-            "Какое у вас постдипломное образование? Выберите вариант:",
-            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-        )
-        return POSTGRADUATE_EDU
+async def resume_template_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    key = update.message.text
+    template = RESUME_TEMPLATES.get(key)
+    if template:
+        await update.message.reply_text(template)
     else:
-        # Для стоматолога
-        keyboard = [["да", "нет"]]
-        await update.message.reply_text(
-            "Есть ли у вас действующая аккредитация по стоматологии?",
-            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-        )
-        return ACCREDITATION
-
-async def postgraduate_edu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-    context.user_data['postgraduate_edu'] = text
-
-    if text == "Ординатура 3+ лет или резидентура 3+ лет" or text == "Аспирантура и КМН":
-        keyboard = [["да", "нет"]]
-        await update.message.reply_text(
-            "После окончания вашего постдипломного прошло 3 года?",
-            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-        )
-        return POSTGRADUATE_YEARS
-    else:
-        # Если нет 3+ лет ординатуры/резидентуры/аспира, то сразу спрашиваем аккредитацию
-        keyboard = [["да", "нет"]]
-        await update.message.reply_text(
-            "Есть ли у вас действующая аккредитация по вашей специальности?",
-            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-        )
-        return ACCREDITATION
-
-async def postgraduate_years(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.lower()
-    context.user_data['postgraduate_years_passed'] = (text == "да")
-    keyboard = [["да", "нет"]]
-    await update.message.reply_text(
-        "Есть ли у вас действующая аккредитация по вашей специальности?",
-        reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-    )
-    return ACCREDITATION
-
-async def accreditation(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.lower()
-    context.user_data['accreditation'] = (text == "да")
-
-    keyboard = [["да", "нет"]]
-    await update.message.reply_text(
-        "Вы из России?",
-        reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-    )
-    return FROM_RUSSIA
-
-async def from_russia(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.lower()
-    context.user_data['from_russia'] = (text == "да")
-
-    # Логика определения лицензии
-    res = determine_license(context.user_data)
-    await update.message.reply_text(res)
+        await update.message.reply_text("Шаблон не найден.")
     return ConversationHandler.END
 
-def determine_license(data):
-    prof = data.get('profession')
-    edu = data.get('education') == "да"
-    speciality_match = data.get('speciality_match', False)
-    experience = data.get('experience', 0)
-    postgrad = data.get('postgraduate_edu', "")
-    postgrad_years_passed = data.get('postgraduate_years_passed', False)
-    accreditation = data.get('accreditation', False)
-    from_russia = data.get('from_russia', False)
-
-    # Проверяем Specialist
-    specialist_postgrad = postgrad in ["Ординатура 3+ лет или резидентура 3+ лет", "Аспирантура и КМН"]
-    if edu and specialist_postgrad and postgrad_years_passed and accreditation and experience >= 3:
-        return "Вы проходите на Specialist."
-
-    # Проверка GP
-    gp_specialities = SPECIALITIES_GP
-    if prof == "врач" and edu:
-        if speciality_match:
-            if experience >= 4 and accreditation:
-                return "Вы проходите на лицензию GP."
-            elif experience >= 2 and postgrad == "Интернатура":
-                return "Вы проходите на лицензию GP."
-            elif from_russia:
-                return "Вы из России — можем сделать аккредитацию и стаж для GP."
-            else:
-                return "К сожалению, вы пока не проходите ни на одну лицензию."
-        else:
-            # Если специальность не из списка, но по остальным параметрам подходит GP
-            if experience >= 4 and accreditation:
-                return "Клиент в теории проходит на GP, но нужно сделать стаж и аккредитацию по одной из подходящих специальностей."
-            elif from_russia:
-                return "Вы из России — можем сделать аккредитацию и стаж для GP."
-            else:
-                return "К сожалению, вы пока не проходите ни на одну лицензию."
-
-    # Проверка GD
-    if prof == "стоматолог" and edu:
-        if experience >= 4 and accreditation:
-            return "Вы проходите на лицензию GD."
-        else:
-            return "К сожалению, вы не проходите на лицензию GD."
-
-    return "К сожалению, вы пока не проходите ни на одну лицензию."
-
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Диалог прерван. Если хотите начать заново, напишите /start.")
+async def course_program_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    key = update.message.text
+    program = COURSE_PROGRAMS.get(key)
+    if program:
+        await update.message.reply_text(program)
+    else:
+        await update.message.reply_text("Программа не найдена.")
     return ConversationHandler.END
 
+# 👇 (оставляем остальную часть: profession → from_russia — без изменений)
+# — [ТВОЙ КОД ЛИЦЕНЗИРОВАНИЯ от PROFESSION до determine_license() — сюда вставь как есть] —
+# — [не забудь вернуть все функции: cancel, determine_license и т.д.] —
 
+# Запуск
 def main():
     import asyncio
-    from telegram.ext import Application, ConversationHandler, CommandHandler, MessageHandler, filters
+    from telegram.ext import Application
 
     TOKEN = os.getenv("TOKEN")
     application = Application.builder().token(TOKEN).build()
@@ -202,6 +127,11 @@ def main():
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
+            MAIN_MENU: [MessageHandler(filters.TEXT & ~filters.COMMAND, main_menu)],
+            RESUME_TEMPLATE_CHOICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, resume_template_choice)],
+            COURSE_PROGRAM_CHOICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, course_program_choice)],
+
+            # 👇 ниже — блок лицензирования, не трогаем
             PROFESSION: [MessageHandler(filters.Regex("^(врач|стоматолог)$"), profession)],
             EDUCATION: [MessageHandler(filters.Regex("^(да|нет)$"), education)],
             SPECIALITY_CHECK: [MessageHandler(filters.Regex("^(да|нет)$"), speciality_check)],
