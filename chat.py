@@ -103,8 +103,8 @@ async def education(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                             reply_markup=ReplyKeyboardMarkup([["да", "нет"]], one_time_keyboard=True, resize_keyboard=True))
             return SPECIALITY_CHECK
         elif context.user_data['profession'] == "стоматолог":
-    		await update.message.reply_text("Сколько лет у вас стоматологического стажа?")
-    		return EXPERIENCE
+    await update.message.reply_text("Сколько лет у вас стоматологического стажа?")
+    return EXPERIENCE
     else:
         await update.message.reply_text("Без высшего образования лицензия невозможна.")
         return ConversationHandler.END
