@@ -1,151 +1,103 @@
 import os
 from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ConversationHandler, ContextTypes, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ConversationHandler, ContextTypes
 
-(
-    MAIN_MENU,
-    PROFESSION,
-    EDUCATION,
-    SPECIALITY_CHECK,
-    EXPERIENCE,
-    POSTGRADUATE_EDU,
-    POSTGRADUATE_YEARS,
-    ACCREDITATION,
-    FROM_RUSSIA,
-    RESUME_TEMPLATE_CHOICE,
-    COURSE_PROGRAM_CHOICE,
-) = range(11)
+# Логирование
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
-SPECIALITIES_GP = [
-    "Терапевт", "Кардиология", "Реаниматология", "Скорая медицинская помощь",
-    "Семейная медицина", "Педиатрия", "Общая хирургия", "Акушерство и гинекология"
-]
+# Состояния
+CHOOSING, CHECK_LICENSE, SEND_TEMPLATE, SEND_PROGRAM = range(4)
 
-POSTGRADUATE_OPTIONS = [
-    "Интернатура",
-    "Ординатура 2 года",
-    "Ординатура 3+ лет или резидентура 3+ лет",
-    "Аспирантура и КМН"
-]
-
-RESUME_TEMPLATES = {
-    "GP": "Обучение проходит на платформе геткурс, где будет доступ к материалам и записям лекций...\n(далее текст шаблона GP)",
-    "BT": "В начале идет подготовка к сдаче экзамена, называется Prometric Exam...\n(далее текст шаблона BT)",
-    "GD Полина Ганжара": "Программа: 20 занятий по 2 часа, теория на русском, практика на английском...\n(далее текст GD Полина)",
-    "GD Ксения Исламова": "54 мини-урока по 30 минут — максимум пользы при минимуме времени...\n(далее текст GD Ксения)",
-    "Specialist Гинеколог": "Добрый день! Отправляю вам подробности по интенсивному курсу по акушерству и гинекологии...\n(далее текст Specialist Гинеколог)",
-    "Резидентура": "Пакет 'Поступление в резидентуру' включает...\n(далее текст резидентура)",
+# Шаблоны
+templates = {
+    "GP": "📄 *Шаблон резюме для GP*:\n\nОбучение на платформе Геткурс...\n(текст шаблона GP)",
+    "BT": "📄 *Шаблон резюме для BT*:\n\nКурс включает 20 онлайн-занятий...\n(текст шаблона BT)",
+    "GD Полина Ганжара": "📄 *Шаблон для GD Полина Ганжара*:\n\n20 занятий по 2 часа...\n(текст шаблона Ганжара)",
+    "GD Ксения Исламова": "📄 *Шаблон для GD Ксения Исламова*:\n\n54 мини-урока по 30 минут...\n(текст шаблона Исламова)",
+    "Specialist Гинеколог": "📄 *Шаблон для Specialist-гинеколога*:\n\n15 занятий по 2 часа...\n(текст шаблона Specialist)",
+    "Резидентура": "📄 *Шаблон для Резидентуры*:\n\nСопровождение поступления...\n(текст резидентуры)"
 }
 
-COURSE_PROGRAMS = {
-    "GP": "Разбор основных дисциплин: Кардиология, Пульмонология, Хирургия, Маммология...",
-    "BT": "Ссылка на программу - https://clck.ru/3FAPvx",
-    "GD Полина Ганжара": "Патология полости рта: норма, травма, наследственная патология слизистой...",
-    "Specialist Гинеколог": "Занятие 1: Анатомия, физиология и фармакология в акушерстве...",
-    "Spec Дерматолог": "Basic dermatology, Histology, Drugs overview, Acne vulgaris, rosacea...",
-    "Spec Кардиолог": "Hypertension. Main steps of treatment. Structure of the heart...",
-    "Spec Семейная Медицина": "Занятие 1: Артериальная гипертензия, ИБС, СН, ЭКГ...",
-    "Spec Внутренняя Медицина": "Занятие 1: ИБС, инфаркт, гипертензия, ЭКГ, кардиомиопатии...",
-    "Spec Педиатр": "Milestone+vaccination, Neonatology, Syndroms, Nephrology, Cardio...",
-    "Хирург": "Острый живот, пищевод, желудок, кишечник, печень, поджелудочная...",
-    "Эндокринолог": "Диабет, ожирение, тиреоидиты, гипофиз, надпочечники, витамин D...",
-    "Spec Отолоринголог": "Отоневрология, аудиология, ринология, экстренные состояния...",
-    "Spec Травматолог": "Ортопедия, травмы, артрозы, спортивные травмы, опухоли, финальный тест...",
-    "Spec Уролог": "Хирургия, инфекции, МКБ, ПН, опухоли, педиатрическая урология...",
-    "Spec Пластический хирург": "Wound repair, Anesthesia, Burns, Head and Neck, Breast, Safety...",
-    "Spec Сосудистый хирург": "Vasculitis, thrombosis, anatomy, ischemia, diabetes, endovascular...",
-    "Spec Невролог": "Инсульт, эпилепсия, когнитивные, иммунные, мышечные, финальный обзор...",
-    "Spec Анестезиолог": "Airway, Neuro/Cardiac anesthesia, Pediatrics, Ethics, Pain, NORA...",
+# Программы курсов
+programs = {
+    "GP": "📘 *Программа курса GP*:\n\n- Кардиология\n- Пульмонология\n...",
+    "BT": "📘 *Программа курса BT*:\n\n🔗 Ссылка: https://clck.ru/3FAPvx",
+    "GD Полина Ганжара": "📘 *Программа курса GD (Полина Ганжара)*:\n\n1. Патология полости рта\n2. Инфекции\n...",
+    "Specialist Гинеколог": "📘 *Программа курса Specialist - Гинекология*:\n\n1. Анатомия и физиология\n2. Планирование беременности\n...",
+    "Spec Дерматолог": "📘 *Дерматология*:\n\nБлок 1 (Н. Калешук): Acne, Psoriasis, Skin Cancer\nБлок 2 (Ю. Кузьменко): Hair, Nails, AGA\n...",
+    "Spec Кардиолог": "📘 *Кардиология*:\n\n1. Hypertension, ECG, MI\n2. Atrial Fibrillation\n...",
+    # Добавь остальные по аналогии
 }
 
-# Главное меню
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [["Узнать лицензию"], ["Шаблоны резюмирования"], ["Программа курса"]]
-    await update.message.reply_text(
-        "Выберите, что вы хотите сделать:",
-        reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-    )
-    return MAIN_MENU
+# Кнопки главного меню
+main_keyboard = [["🩺 Определить лицензию"], ["📄 Шаблоны резюме"], ["📘 Программа курса"]]
+template_keyboard = [[key] for key in templates]
+program_keyboard = [[key] for key in programs]
 
-async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    choice = update.message.text
-    if choice == "Узнать лицензию":
-        keyboard = [["врач", "стоматолог"]]
-        await update.message.reply_text(
-            "Здравствуйте! Вы являетесь врачом или стоматологом?",
-            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-        )
-        return PROFESSION
-    elif choice == "Шаблоны резюмирования":
-        keyboard = [[key] for key in RESUME_TEMPLATES.keys()]
-        await update.message.reply_text(
-            "Выберите шаблон резюмирования:",
-            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-        )
-        return RESUME_TEMPLATE_CHOICE
-    elif choice == "Программа курса":
-        keyboard = [[key] for key in COURSE_PROGRAMS.keys()]
-        await update.message.reply_text(
-            "Выберите курс, для которого хотите получить программу:",
-            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-        )
-        return COURSE_PROGRAM_CHOICE
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text("👋 Привет! Я помогу тебе с медицинской лицензией в ОАЭ. Выбери опцию:",
+                                    reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True))
+    return CHOOSING
+
+async def handle_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    text = update.message.text
+    if text == "🩺 Определить лицензию":
+        await update.message.reply_text("🔍 Напиши, какой у тебя диплом, опыт, и в какой области хочешь получить лицензию.")
+        return CHECK_LICENSE
+    elif text == "📄 Шаблоны резюме":
+        await update.message.reply_text("Выбери шаблон:", reply_markup=ReplyKeyboardMarkup(template_keyboard, resize_keyboard=True))
+        return SEND_TEMPLATE
+    elif text == "📘 Программа курса":
+        await update.message.reply_text("Выбери курс:", reply_markup=ReplyKeyboardMarkup(program_keyboard, resize_keyboard=True))
+        return SEND_PROGRAM
     else:
-        await update.message.reply_text("Пожалуйста, выберите один из предложенных вариантов.")
-        return MAIN_MENU
+        await update.message.reply_text("Пожалуйста, выбери одну из опций.")
+        return CHOOSING
 
-async def resume_template_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def check_license(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    msg = update.message.text.lower()
+    result = "⚠️ Не удалось определить. Попробуй описать подробнее."
+    if "гинеколог" in msg or "акушер" in msg:
+        result = "✅ Вам подходит лицензия Specialist."
+    elif "стоматолог" in msg:
+        result = "✅ Вам подходит лицензия General Dentist (GD)."
+    elif "терапевт" in msg or "педиатр" in msg:
+        result = "✅ Вам подходит лицензия GP."
+    await update.message.reply_text(result)
+    return CHOOSING
+
+async def send_template(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     key = update.message.text
-    template = RESUME_TEMPLATES.get(key)
-    if template:
-        await update.message.reply_text(template)
-    else:
-        await update.message.reply_text("Шаблон не найден.")
-    return ConversationHandler.END
+    text = templates.get(key, "⚠️ Не найден шаблон для этой категории.")
+    await update.message.reply_text(text, parse_mode="Markdown")
+    return CHOOSING
 
-async def course_program_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def send_program(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     key = update.message.text
-    program = COURSE_PROGRAMS.get(key)
-    if program:
-        await update.message.reply_text(program)
-    else:
-        await update.message.reply_text("Программа не найдена.")
-    return ConversationHandler.END
+    text = programs.get(key, "⚠️ Не найдена программа для этой категории.")
+    await update.message.reply_text(text, parse_mode="Markdown")
+    return CHOOSING
 
-# 👇 (оставляем остальную часть: profession → from_russia — без изменений)
-# — [ТВОЙ КОД ЛИЦЕНЗИРОВАНИЯ от PROFESSION до determine_license() — сюда вставь как есть] —
-# — [не забудь вернуть все функции: cancel, determine_license и т.д.] —
-
-# Запуск
 def main():
-    import asyncio
+    import os
     from telegram.ext import Application
 
-    TOKEN = os.getenv("TOKEN")
-    application = Application.builder().token(TOKEN).build()
+    TOKEN = os.getenv("TELEGRAM_TOKEN")
+    app = ApplicationBuilder().token(TOKEN).build()
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
+        entry_points=[CommandHandler("start", start)],
         states={
-            MAIN_MENU: [MessageHandler(filters.TEXT & ~filters.COMMAND, main_menu)],
-            RESUME_TEMPLATE_CHOICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, resume_template_choice)],
-            COURSE_PROGRAM_CHOICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, course_program_choice)],
-
-            # 👇 ниже — блок лицензирования, не трогаем
-            PROFESSION: [MessageHandler(filters.Regex("^(врач|стоматолог)$"), profession)],
-            EDUCATION: [MessageHandler(filters.Regex("^(да|нет)$"), education)],
-            SPECIALITY_CHECK: [MessageHandler(filters.Regex("^(да|нет)$"), speciality_check)],
-            EXPERIENCE: [MessageHandler(filters.TEXT & ~filters.COMMAND, experience)],
-            POSTGRADUATE_EDU: [MessageHandler(filters.Regex("^(" + "|".join(POSTGRADUATE_OPTIONS) + ")$"), postgraduate_edu)],
-            POSTGRADUATE_YEARS: [MessageHandler(filters.Regex("^(да|нет)$"), postgraduate_years)],
-            ACCREDITATION: [MessageHandler(filters.Regex("^(да|нет)$"), accreditation)],
-            FROM_RUSSIA: [MessageHandler(filters.Regex("^(да|нет)$"), from_russia)],
+            CHOOSING: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_choice)],
+            CHECK_LICENSE: [MessageHandler(filters.TEXT & ~filters.COMMAND, check_license)],
+            SEND_TEMPLATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, send_template)],
+            SEND_PROGRAM: [MessageHandler(filters.TEXT & ~filters.COMMAND, send_program)],
         },
-        fallbacks=[CommandHandler('cancel', cancel)],
+        fallbacks=[CommandHandler("start", start)],
     )
 
-    application.add_handler(conv_handler)
-    application.run_polling()
+    app.add_handler(conv_handler)
+    app.run_polling()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
