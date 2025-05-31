@@ -1,8 +1,10 @@
+import os
 import logging
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
     ConversationHandler, ContextTypes, filters
+)
 
 # Логирование
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
@@ -10,7 +12,7 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s
 # Состояния
 CHOOSING, CHECK_LICENSE, SEND_TEMPLATE, SEND_PROGRAM = range(4)
 
-# Шаблоны
+# Шаблоны резюме
 templates = {
     "GP": "📄 *Шаблон резюме для GP*:\n\nОбучение на платформе Геткурс...\n(текст шаблона GP)",
     "BT": "📄 *Шаблон резюме для BT*:\n\nКурс включает 20 онлайн-занятий...\n(текст шаблона BT)",
@@ -27,18 +29,20 @@ programs = {
     "GD Полина Ганжара": "📘 *Программа курса GD (Полина Ганжара)*:\n\n1. Патология полости рта\n2. Инфекции\n...",
     "Specialist Гинеколог": "📘 *Программа курса Specialist - Гинекология*:\n\n1. Анатомия и физиология\n2. Планирование беременности\n...",
     "Spec Дерматолог": "📘 *Дерматология*:\n\nБлок 1 (Н. Калешук): Acne, Psoriasis, Skin Cancer\nБлок 2 (Ю. Кузьменко): Hair, Nails, AGA\n...",
-    "Spec Кардиолог": "📘 *Кардиология*:\n\n1. Hypertension, ECG, MI\n2. Atrial Fibrillation\n...",
-    # Добавь остальные по аналогии
+    "Spec Кардиолог": "📘 *Кардиология*:\n\n1. Hypertension, ECG, MI\n2. Atrial Fibrillation\n..."
 }
 
-# Кнопки главного меню
+# Клавиатуры
 main_keyboard = [["🩺 Определить лицензию"], ["📄 Шаблоны резюме"], ["📘 Программа курса"]]
 template_keyboard = [[key] for key in templates]
 program_keyboard = [[key] for key in programs]
 
+# Обработчики
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("👋 Привет! Я помогу тебе с медицинской лицензией в ОАЭ. Выбери опцию:",
-                                    reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True))
+    await update.message.reply_text(
+        "👋 Привет! Я помогу тебе с медицинской лицензией в ОАЭ. Выбери опцию:",
+        reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
+    )
     return CHOOSING
 
 async def handle_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -80,12 +84,10 @@ async def send_program(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     await update.message.reply_text(text, parse_mode="Markdown")
     return CHOOSING
 
+# Запуск бота
 def main():
-    import os
-    from telegram.ext import Application
-
     TOKEN = os.getenv("TELEGRAM_TOKEN")
-    app = ApplicationBuilder().token(TOKEN).build()
+    application = ApplicationBuilder().token(TOKEN).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
@@ -98,8 +100,8 @@ def main():
         fallbacks=[CommandHandler("start", start)],
     )
 
-    app.add_handler(conv_handler)
-    app.run_polling()
+    application.add_handler(conv_handler)
+    application.run_polling()
 
 if __name__ == "__main__":
     main()
