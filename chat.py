@@ -19,7 +19,11 @@ with open("programs.json", "r", encoding="utf-8") as f:
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 # Состояния
-CHOOSING, PROFESSION, EDUCATION, SPECIALITY_CHECK, EXPERIENCE, POSTGRADUATE_EDU, POSTGRADUATE_YEARS, ACCREDITATION, FROM_RUSSIA, SEND_TEMPLATE, SEND_PROGRAM, NURSE_EDU_DURATION, NURSE_LICENSE = range(13)
+(
+    CHOOSING, PROFESSION, EDUCATION, SPECIALITY_CHECK, EXPERIENCE,
+    POSTGRADUATE_EDU, POSTGRADUATE_YEARS, ACCREDITATION, FROM_RUSSIA,
+    SEND_TEMPLATE, SEND_PROGRAM, NURSE_EDU_DURATION, NURSE_LICENSE
+) = range(13)
 
 # Кнопки
 main_keyboard = [["🩺 Определить лицензию"], ["📄 Шаблоны резюме"], ["📘 Программа курса"]]
@@ -79,7 +83,7 @@ async def nurse_edu_duration(update: Update, context: ContextTypes.DEFAULT_TYPE)
                                         reply_markup=ReplyKeyboardMarkup([["да", "нет"]], one_time_keyboard=True, resize_keyboard=True))
         return NURSE_LICENSE
     else:
-        await update.message.reply_text("⛔️ Вы не проходите на лицензии.")
+        await update.message.reply_text("⛔️ Вы можете попробовать податься Beauty Therapist")
         return CHOOSING
 
 async def nurse_license(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -87,7 +91,7 @@ async def nurse_license(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if has_license and context.user_data.get('nurse_edu', False):
         await update.message.reply_text("✅ Вы проходите на лицензию Registered Nurse.")
     else:
-        await update.message.reply_text("⛔️ Вы не проходите на лицензию.")
+        await update.message.reply_text("⛔️ Вы можете попробовать податься Beauty Therapist.")
     return CHOOSING
 
 async def education(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -98,9 +102,10 @@ async def education(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("Ваша специальность из списка: " + ", ".join(SPECIALITIES_GP) + "?",
                                             reply_markup=ReplyKeyboardMarkup([["да", "нет"]], one_time_keyboard=True, resize_keyboard=True))
             return SPECIALITY_CHECK
-        else:
-            await update.message.reply_text("Сколько лет стоматологического стажа?")
-            return EXPERIENCE
+        elif context.user_data['profession'] == "стоматолог":
+            await update.message.reply_text("Какое у вас постдипломное образование?",
+                                            reply_markup=ReplyKeyboardMarkup([POSTGRADUATE_OPTIONS], one_time_keyboard=True, resize_keyboard=True))
+            return POSTGRADUATE_EDU
     else:
         await update.message.reply_text("Без высшего образования лицензия невозможна.")
         return ConversationHandler.END
@@ -169,6 +174,15 @@ def determine_license(data):
         return "⛔️ (не должно сработать, используется отдельная логика выше)"
 
     specialist_postgrad = postgrad in ["Ординатура 3+ лет или резидентура 3+ лет", "Аспирантура и КМН"]
+
+    if prof == "стоматолог" and edu:
+        if specialist_postgrad and postgrad_years_passed and experience >= 3:
+            return "✅ Вы проходите на лицензию GD Specialist."
+        elif experience >= 4 and accreditation:
+            return "✅ Вы проходите на GD."
+        else:
+            return "⛔️ Вы не проходите на лицензию GD."
+
     if edu and specialist_postgrad and postgrad_years_passed and accreditation and experience >= 3:
         return "✅ Вы проходите на Specialist."
 
@@ -189,12 +203,6 @@ def determine_license(data):
                 return "Можно оформить стаж и аккредитацию для GP."
             else:
                 return "⛔️ Пока не проходите ни на одну лицензию."
-
-    if prof == "стоматолог" and edu:
-        if experience >= 4 and accreditation:
-            return "✅ Вы проходите на GD."
-        else:
-            return "⛔️ Вы не проходите на лицензию GD."
 
     return "⛔️ Пока не проходите ни на одну лицензию."
 
