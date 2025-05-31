@@ -66,9 +66,6 @@ async def handle_resume_request(update: Update, context: ContextTypes.DEFAULT_TY
     else:
         await update.message.reply_text("Пожалуйста, выбери один из доступных шаблонов.")
 
-resume_buttons = [[key] for key in templates.keys()]
-keyboard = ReplyKeyboardMarkup(resume_buttons, one_time_keyboard=True, resize_keyboard=True)
-await update.message.reply_text("Выберите шаблон резюме:", reply_markup=keyboard)
 
 async def handle_program_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_input = update.message.text
