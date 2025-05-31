@@ -230,10 +230,12 @@ return CHOOSING
 
 async def send_program(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        program_text + "\n\n⬅️ Вернуться в главное меню:",
-        reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
-    )
-    return CHOOSING
+        program_text = programs.get(update.message.text, "⚠️ Программа не найдена.")
+await update.message.reply_text(
+    program_text + "\n\n⬅️ Вернуться в главное меню:",
+    reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
+)
+return CHOOSING
 
 def main():
     TOKEN = os.getenv("TELEGRAM_TOKEN")
