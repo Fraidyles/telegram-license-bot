@@ -97,11 +97,13 @@ async def nurse_license(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def education(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.lower()
     context.user_data['education'] = text
-    if text == "да":
+
     if text == "да":
         if context.user_data['profession'] == "врач":
-            await update.message.reply_text("Ваша специальность из списка: " + ", ".join(SPECIALITIES_GP) + "?",
-                                            reply_markup=ReplyKeyboardMarkup([["да", "нет"]], one_time_keyboard=True, resize_keyboard=True))
+            await update.message.reply_text(
+                "Ваша специальность из списка: " + ", ".join(SPECIALITIES_GP) + "?",
+                reply_markup=ReplyKeyboardMarkup([["да", "нет"]], one_time_keyboard=True, resize_keyboard=True)
+            )
             return SPECIALITY_CHECK
         elif context.user_data['profession'] == "стоматолог":
             await update.message.reply_text("Сколько лет у вас стоматологического стажа?")
