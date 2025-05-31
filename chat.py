@@ -165,7 +165,7 @@ def determine_license(data):
             elif from_russia:
                 return "Можно оформить аккредитацию и стаж для GP."
             else:
-                return ⛔️ Пока не проходите ни на одну лицензию."
+                return "⛔️ Пока не проходите ни на одну лицензию."
         else:
             if experience >= 4 and accreditation:
                 return "Возможно GP, если оформить аккредитацию по нужной специальности."
