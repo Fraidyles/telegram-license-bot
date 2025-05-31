@@ -128,6 +128,10 @@ async def experience(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Какое у вас постдипломное образование?",
                                         reply_markup=ReplyKeyboardMarkup([POSTGRADUATE_OPTIONS], one_time_keyboard=True, resize_keyboard=True))
         return POSTGRADUATE_EDU
+    elif context.user_data['profession'] == "стоматолог":
+        await update.message.reply_text("Какое у вас постдипломное образование?",
+                                        reply_markup=ReplyKeyboardMarkup([POSTGRADUATE_OPTIONS], one_time_keyboard=True, resize_keyboard=True))
+        return POSTGRADUATE_EDU
     else:
         await update.message.reply_text("Есть ли у вас действующая аккредитация по стоматологии?",
                                         reply_markup=ReplyKeyboardMarkup([["да", "нет"]], one_time_keyboard=True, resize_keyboard=True))
