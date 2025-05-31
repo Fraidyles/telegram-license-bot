@@ -83,7 +83,7 @@ async def nurse_edu_duration(update: Update, context: ContextTypes.DEFAULT_TYPE)
                                         reply_markup=ReplyKeyboardMarkup([["да", "нет"]], one_time_keyboard=True, resize_keyboard=True))
         return NURSE_LICENSE
     else:
-        await update.message.reply_text("⛔️ Вы можете попробовать податься Beauty Therapist")
+        await update.message.reply_text("⛔️ Вы можете попробовать податься на Beauty Therapist")
         return CHOOSING
 
 async def nurse_license(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -91,7 +91,7 @@ async def nurse_license(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if has_license and context.user_data.get('nurse_edu', False):
         await update.message.reply_text("✅ Вы проходите на лицензию Registered Nurse.")
     else:
-        await update.message.reply_text("⛔️ Вы можете попробовать податься Beauty Therapist.")
+        await update.message.reply_text("⛔️ Вы можете попробовать податься на Beauty Therapist.")
     return CHOOSING
 
 async def education(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -176,7 +176,7 @@ def determine_license(data):
     specialist_postgrad = postgrad in ["Ординатура 3+ лет или резидентура 3+ лет", "Аспирантура и КМН"]
 
     if prof == "стоматолог" and edu:
-        if specialist_postgrad and postgrad_years_passed and experience >= 3:
+        if specialist_postgrad and postgrad_years_passed and accreditation and experience >= 3:
             return "✅ Вы проходите на лицензию GD Specialist."
         elif experience >= 4 and accreditation:
             return "✅ Вы проходите на GD."
