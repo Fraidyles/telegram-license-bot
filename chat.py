@@ -89,9 +89,14 @@ async def nurse_edu_duration(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def nurse_license(update: Update, context: ContextTypes.DEFAULT_TYPE):
     has_license = update.message.text.lower() == "да"
     if has_license and context.user_data.get('nurse_edu', False):
-        await update.message.reply_text("✅ Вы проходите на лицензию Registered Nurse.")
+        message = "✅ Вы проходите на лицензию Registered Nurse."
     else:
-        await update.message.reply_text("⛔️ Вы можете попробовать податься на Beauty Therapist.")
+        message = "⛔️ Вы можете попробовать податься на Beauty Therapist."
+    
+    await update.message.reply_text(
+        message + "\n\n⬅️ Вернуться в главное меню:",
+        reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
+    )
     return CHOOSING
 
 async def education(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -163,8 +168,11 @@ async def accreditation(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def from_russia(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['from_russia'] = (update.message.text.lower() == "да")
     result = determine_license(context.user_data)
-    await update.message.reply_text(result)
-    return CHOOSING
+   await update.message.reply_text(
+    result + "\n\n⬅️ Вернуться в главное меню:",
+    reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
+)
+return CHOOSING
 
 def determine_license(data):
     prof = data.get('profession')
@@ -214,11 +222,17 @@ def determine_license(data):
 
 # --- Шаблоны / Программы ---
 async def send_template(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(templates.get(update.message.text, "⚠️ Шаблон не найден."))
-    return CHOOSING
+    await update.message.reply_text(
+    templates.get(update.message.text, "⚠️ Шаблон не найден.") + "\n\n⬅️ Вернуться в главное меню:",
+    reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
+)
+return CHOOSING
 
 async def send_program(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(programs.get(update.message.text, "⚠️ Программа не найдена."))
+    await update.message.reply_text(
+        program_text + "\n\n⬅️ Вернуться в главное меню:",
+        reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
+    )
     return CHOOSING
 
 def main():
