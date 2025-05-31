@@ -185,7 +185,7 @@ def determine_license(data):
         if specialist_postgrad and postgrad_years_passed and accreditation and experience >= 3:
             return "✅ Вы проходите на лицензию GD Specialist."
         elif experience >= 4 and accreditation:
-            return "✅ Вы проходите на GD."
+            return "✅ Вы проходите на лицензию GD, только если ваша специальность не ЧЛХ."
         else:
             return "⛔️ Вы не проходите на лицензию GD."
 
