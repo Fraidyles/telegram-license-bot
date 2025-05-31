@@ -1,3 +1,13 @@
+import json
+import os
+
+# Загрузка шаблонов резюме
+with open("templates.json", "r", encoding="utf-8") as f:
+    templates = json.load(f)
+
+# Загрузка программ курсов
+with open("programs.json", "r", encoding="utf-8") as f:
+    programs = json.load(f)
 import os
 import logging
 from telegram import Update, ReplyKeyboardMarkup
@@ -48,6 +58,29 @@ POSTGRADUATE_OPTIONS = [
     "Ординатура 3+ лет или резидентура 3+ лет",
     "Аспирантура и КМН"
 ]
+async def handle_resume_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_input = update.message.text
+    response = templates.get(user_input)
+    if response:
+        await update.message.reply_text(response, parse_mode="Markdown")
+    else:
+        await update.message.reply_text("Пожалуйста, выбери один из доступных шаблонов.")
+
+resume_buttons = [[key] for key in templates.keys()]
+keyboard = ReplyKeyboardMarkup(resume_buttons, one_time_keyboard=True, resize_keyboard=True)
+await update.message.reply_text("Выберите шаблон резюме:", reply_markup=keyboard)
+
+async def handle_program_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_input = update.message.text
+    response = programs.get(user_input)
+    if response:
+        await update.message.reply_text(response, parse_mode="Markdown")
+    else:
+        await update.message.reply_text("Пожалуйста, выбери одну из доступных программ.")
+
+program_buttons = [[key] for key in programs.keys()]
+keyboard = ReplyKeyboardMarkup(program_buttons, one_time_keyboard=True, resize_keyboard=True)
+await update.message.reply_text("Выберите программу курса:", reply_markup=keyboard)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привет! Выбери, что хочешь сделать:",
