@@ -25,13 +25,21 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s
 (
     CHOOSING, PROFESSION, EDUCATION, SPECIALITY_CHECK, EXPERIENCE,
     POSTGRADUATE_EDU, POSTGRADUATE_YEARS, ACCREDITATION, FROM_RUSSIA,
-    SEND_TEMPLATE, SEND_PROGRAM, NURSE_EDU_DURATION, NURSE_LICENSE
+    SEND_TEMPLATE, SEND_PROGRAM, NURSE_EDU_DURATION, NURSE_LICENSE,
+    SHOW_PRICES
 ) = range(13)
 
 # Кнопки
-main_keyboard = [["🩺 Определить лицензию"], ["📄 Шаблоны резюме"], ["📘 Программа курса"]]
+main_keyboard = [["🩺 Определить лицензию"], ["📄 Шаблоны резюме"], ["📘 Программа курса"], ["💰 Цены"]]
 template_keyboard = [[key] for key in templates]
 program_keyboard = [[key] for key in programs]
+prices = {
+    "Лицензия GP": "1 200 AED",
+    "Лицензия Specialist": "1 900 AED",
+    "Курс Anti-Age": "800 AED",
+    "Курс для медсестры": "950 AED"
+}
+price_keyboard = [[key] for key in prices]
 
 SPECIALITIES_GP = [
     "Терапевт", "Кардиология", "Реаниматология", "Скорая медицинская помощь",
@@ -67,6 +75,10 @@ async def main_menu_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Выбери курс:",
             reply_markup=ReplyKeyboardMarkup(with_main_menu_button(program_keyboard), resize_keyboard=True))
         return SEND_PROGRAM
+    elif choice == "💰 Цены":
+        await update.message.reply_text("Выбери продукт:",
+            reply_markup=ReplyKeyboardMarkup(with_main_menu_button(price_keyboard), resize_keyboard=True))
+        return SHOW_PRICES
     else:
         await update.message.reply_text("Пожалуйста, выбери одну из опций.")
         return CHOOSING
@@ -221,6 +233,17 @@ async def send_template(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return CHOOSING
 
+async def show_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text == "⬅️ Главное меню":
+        return await start(update, context)
+
+    price = prices.get(update.message.text, "⚠️ Цена не найдена.")
+    await update.message.reply_text(
+        f"{update.message.text}: {price}\n\n⬅️ Вернуться в главное меню:",
+        reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
+    )
+    return CHOOSING
+
 async def send_program(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.text == "⬅️ Главное меню":
         return await start(update, context)
@@ -293,6 +316,7 @@ def main():
             SEND_TEMPLATE: [MessageHandler(filters.TEXT, send_template)],
             SEND_PROGRAM: [MessageHandler(filters.TEXT, send_program)],
             NURSE_EDU_DURATION: [MessageHandler(filters.TEXT, nurse_edu_duration)],
+            SHOW_PRICES: [MessageHandler(filters.TEXT, show_price)],
             NURSE_LICENSE: [MessageHandler(filters.TEXT, nurse_license)],
         },
         fallbacks=[CommandHandler("start", start)],
