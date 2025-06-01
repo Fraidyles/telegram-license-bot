@@ -27,7 +27,7 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s
     POSTGRADUATE_EDU, POSTGRADUATE_YEARS, ACCREDITATION, FROM_RUSSIA,
     SEND_TEMPLATE, SEND_PROGRAM, NURSE_EDU_DURATION, NURSE_LICENSE,
     SHOW_PRICES
-) = range(13)
+) = range(14)
 
 # Кнопки
 main_keyboard = [["🩺 Определить лицензию"], ["📄 Шаблоны резюме"], ["📘 Программа курса"], ["💰 Цены"]]
