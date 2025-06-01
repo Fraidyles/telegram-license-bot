@@ -149,7 +149,7 @@ async def education(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                                              one_time_keyboard=True, resize_keyboard=True))
             return EXPERIENCE
     else:
-        await update.message.reply_text("Без высшего образования лицензия невозможна.")
+        await update.message.reply_text("Без высшего образования вы можете претендовать только на лицензию BT или рассмотреть Anti-Age ")
         return ConversationHandler.END
 
 async def speciality_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -317,16 +317,16 @@ def determine_license(data):
             elif from_russia:
                 return "Можно оформить аккредитацию и стаж для GP."
             else:
-                return "⛔️Можно попробовать только на Beauty Therapist или Anti-Age."
+                return "⛔️Без лицензии вы можете претендовать только на лицензию BT или рассмотреть Anti-Age."
         else:
             if experience >= 4 and accreditation:
                 return "Возможно GP, если оформить стаж и аккредитацию по нужной специальности."
             elif from_russia:
                 return "Можно оформить стаж и аккредитацию для GP."
             else:
-                return "⛔️Можно попробовать только на Beauty Therapist или Anti-Age."
+                return "⛔️Без лицензии вы можете претендовать только на лицензию BT или рассмотреть Anti-Age"
 
-    return "⛔️Можно попробовать только на Beauty Therapist или Anti-Age."
+    return "⛔️Без лицензии вы можете претендовать только на лицензию BT или рассмотреть Anti-Age."
 
 # ----------- Главная функция -----------
 
