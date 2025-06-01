@@ -91,8 +91,9 @@ async def nurse_edu_duration(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     if update.message.text.lower() == "да":
         context.user_data['nurse_edu'] = True
-        await update.message.reply_text("У вас есть действующая лицензия медсестры/фельдшера?",
-                                        reply_markup=ReplyKeyboardMarkup(with_main_menu_button([["да", "нет"]]),
+        await update.message.reply_text(
+    "У вас есть действующая лицензия медсестры/фельдшера?",
+    reply_markup=ReplyKeyboardMarkup(with_main_menu_button([["да", "нет"]]),
                                      one_time_keyboard=True, resize_keyboard=True)
         return NURSE_LICENSE
     else:
