@@ -18,6 +18,10 @@ with open("templates.json", "r", encoding="utf-8") as f:
 with open("programs.json", "r", encoding="utf-8") as f:
     programs = json.load(f)
 
+# Загрузка цен
+with open("full_prices_complete.json", "r", encoding="utf-8") as f:
+    full_prices = json.load(f)
+
 # Логирование
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
@@ -26,20 +30,13 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s
     CHOOSING, PROFESSION, EDUCATION, SPECIALITY_CHECK, EXPERIENCE,
     POSTGRADUATE_EDU, POSTGRADUATE_YEARS, ACCREDITATION, FROM_RUSSIA,
     SEND_TEMPLATE, SEND_PROGRAM, NURSE_EDU_DURATION, NURSE_LICENSE,
-    SHOW_PRICES
-) = range(14)
+    PRICE_CATEGORY, PRICE_OPTION
+) = range(15)
 
 # Кнопки
 main_keyboard = [["🩺 Определить лицензию"], ["📄 Шаблоны резюме"], ["📘 Программа курса"], ["💰 Цены"]]
 template_keyboard = [[key] for key in templates]
 program_keyboard = [[key] for key in programs]
-prices = {
-    "Лицензия GP": "1 200 AED",
-    "Лицензия Specialist": "1 900 AED",
-    "Курс Anti-Age": "800 AED",
-    "Курс для медсестры": "950 AED"
-}
-price_keyboard = [[key] for key in prices]
 
 SPECIALITIES_GP = [
     "Терапевт", "Кардиология", "Реаниматология", "Скорая медицинская помощь",
@@ -76,13 +73,14 @@ async def main_menu_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=ReplyKeyboardMarkup(with_main_menu_button(program_keyboard), resize_keyboard=True))
         return SEND_PROGRAM
     elif choice == "💰 Цены":
-        await update.message.reply_text("Выбери продукт:",
-            reply_markup=ReplyKeyboardMarkup(with_main_menu_button(price_keyboard), resize_keyboard=True))
-        return SHOW_PRICES
+        categories = list(full_prices.keys())
+        category_keyboard = [[c] for c in categories]
+        await update.message.reply_text("Выбери категорию:",
+            reply_markup=ReplyKeyboardMarkup(with_main_menu_button(category_keyboard), resize_keyboard=True))
+        return PRICE_CATEGORY
     else:
         await update.message.reply_text("Пожалуйста, выбери одну из опций.")
         return CHOOSING
-
 async def profession(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.text == "⬅️ Главное меню":
         return await start(update, context)
@@ -130,6 +128,7 @@ async def nurse_license(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
     )
     return CHOOSING
+
 async def education(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.text == "⬅️ Главное меню":
         return await start(update, context)
@@ -223,23 +222,13 @@ async def from_russia(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
     )
     return CHOOSING
+
 async def send_template(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.text == "⬅️ Главное меню":
         return await start(update, context)
 
     await update.message.reply_text(
         templates.get(update.message.text, "⚠️ Шаблон не найден.") + "\n\n⬅️ Вернуться в главное меню:",
-        reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
-    )
-    return CHOOSING
-
-async def show_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text == "⬅️ Главное меню":
-        return await start(update, context)
-
-    price = prices.get(update.message.text, "⚠️ Цена не найдена.")
-    await update.message.reply_text(
-        f"{update.message.text}: {price}\n\n⬅️ Вернуться в главное меню:",
         reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
     )
     return CHOOSING
@@ -253,6 +242,48 @@ async def send_program(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
     )
     return CHOOSING
+async def choose_price_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text == "⬅️ Главное меню":
+        return await start(update, context)
+
+    category = update.message.text
+    context.user_data['price_category'] = category
+
+    if category not in full_prices:
+        await update.message.reply_text("⚠️ Такой категории нет.")
+        return CHOOSING
+
+    options = list(full_prices[category].keys())
+    option_buttons = [[o] for o in options]
+    await update.message.reply_text(
+        f"Выберите вариант для {category}:",
+        reply_markup=ReplyKeyboardMarkup(with_main_menu_button(option_buttons), resize_keyboard=True)
+    )
+    return PRICE_OPTION
+
+async def choose_price_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text == "⬅️ Главное меню":
+        return await start(update, context)
+
+    option = update.message.text
+    category = context.user_data.get('price_category')
+
+    if not category or category not in full_prices:
+        await update.message.reply_text("⚠️ Ошибка категории.")
+        return CHOOSING
+
+    if option not in full_prices[category]:
+        await update.message.reply_text("⚠️ Такой опции нет.")
+        return CHOOSING
+
+    price_value = full_prices[category][option]
+    await update.message.reply_text(
+        f"{category} — {option}:\n💰 {price_value}\n\n⬅️ Вернуться в главное меню:",
+        reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
+    )
+    return CHOOSING
+
+# ----------- Логика лицензии -----------
 
 def determine_license(data):
     prof = data.get('profession')
@@ -297,6 +328,8 @@ def determine_license(data):
 
     return "⛔️Можно попробовать только на Beauty Therapist или Anti-Age."
 
+# ----------- Главная функция -----------
+
 def main():
     TOKEN = os.getenv("TELEGRAM_TOKEN")
     app = ApplicationBuilder().token(TOKEN).build()
@@ -316,8 +349,9 @@ def main():
             SEND_TEMPLATE: [MessageHandler(filters.TEXT, send_template)],
             SEND_PROGRAM: [MessageHandler(filters.TEXT, send_program)],
             NURSE_EDU_DURATION: [MessageHandler(filters.TEXT, nurse_edu_duration)],
-            SHOW_PRICES: [MessageHandler(filters.TEXT, show_price)],
             NURSE_LICENSE: [MessageHandler(filters.TEXT, nurse_license)],
+            PRICE_CATEGORY: [MessageHandler(filters.TEXT, choose_price_category)],
+            PRICE_OPTION: [MessageHandler(filters.TEXT, choose_price_option)],
         },
         fallbacks=[CommandHandler("start", start)],
     )
