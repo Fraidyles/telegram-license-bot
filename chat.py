@@ -205,16 +205,16 @@ def determine_license(data):
             elif from_russia:
                 return "Можно оформить аккредитацию и стаж для GP."
             else:
-                return "⛔️ Пока не проходите ни на одну лицензию."
+                return "⛔️Можно попробовать только на Beauty Therapist или Anti-Age."
         else:
             if experience >= 4 and accreditation:
                 return "Возможно GP, если оформить аккредитацию по нужной специальности."
             elif from_russia:
                 return "Можно оформить стаж и аккредитацию для GP."
             else:
-                return "⛔️ Пока не проходите ни на одну лицензию."
+                return "⛔️Можно попробовать только на Beauty Therapist или Anti-Age."
 
-    return "⛔️ Пока не проходите ни на одну лицензию."
+    return "⛔️Можно попробовать только на Beauty Therapist или Anti-Age."
 async def send_template(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         templates.get(update.message.text, "⚠️ Шаблон не найден.") + "\n\n⬅️ Вернуться в главное меню:",
