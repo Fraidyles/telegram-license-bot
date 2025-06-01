@@ -6,6 +6,8 @@ from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
     ConversationHandler, ContextTypes, filters
 )
+def with_main_menu_button(keyboard: list[list[str]]) -> list[list[str]]:
+    return keyboard + [["⬅️ Главное меню"]]
 
 # Загрузка шаблонов резюме
 with open("templates.json", "r", encoding="utf-8") as f:
@@ -69,29 +71,38 @@ async def profession(update: Update, context: ContextTypes.DEFAULT_TYPE):
     profession_choice = update.message.text.lower()
     context.user_data['profession'] = profession_choice
 
+    if update.message.text == "⬅️ Главное меню":
+        return await start(update, context)
+
     if profession_choice == "медсестра/фельдшер":
         await update.message.reply_text("Ваше среднее медицинское образование длилось 3 года и дольше?",
-                                        reply_markup=ReplyKeyboardMarkup([["да", "нет"]],
+                                        reply_markup=ReplyKeyboardMarkup(with_main_menu_button([["да", "нет"]]),
                                                                          one_time_keyboard=True, resize_keyboard=True))
         return NURSE_EDU_DURATION
 
     await update.message.reply_text("У вас есть высшее образование?",
-                                    reply_markup=ReplyKeyboardMarkup([["да", "нет"]],
+                                       reply_markup=ReplyKeyboardMarkup(with_main_menu_button)([["да", "нет"]],
                                                                      one_time_keyboard=True, resize_keyboard=True))
     return EDUCATION
 
 async def nurse_edu_duration(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text == "⬅️ Главное меню":
+        return await start(update, context)
+
     if update.message.text.lower() == "да":
         context.user_data['nurse_edu'] = True
         await update.message.reply_text("У вас есть действующая лицензия медсестры/фельдшера?",
-                                        reply_markup=ReplyKeyboardMarkup([["да", "нет"]],
-                                                                         one_time_keyboard=True, resize_keyboard=True))
+                                        reply_markup=ReplyKeyboardMarkup(with_main_menu_button([["да", "нет"]]),
+                                     one_time_keyboard=True, resize_keyboard=True)
         return NURSE_LICENSE
     else:
         await update.message.reply_text("⛔️ Вы можете попробовать податься на Beauty Therapist")
         return CHOOSING
 
 async def nurse_license(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text == "⬅️ Главное меню":
+        return await start(update, context)
+
     has_license = update.message.text.lower() == "да"
     if has_license and context.user_data.get('nurse_edu', False):
         message = "✅ Вы проходите на лицензию Registered Nurse."
@@ -104,28 +115,39 @@ async def nurse_license(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return CHOOSING
 async def education(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text == "⬅️ Главное меню":
+        return await start(update, context)
+
     text = update.message.text.lower()
     context.user_data['education'] = text
     if text == "да":
         if context.user_data['profession'] == "врач":
             await update.message.reply_text(
                 "Ваша специальность из списка: " + ", ".join(SPECIALITIES_GP) + "?",
-                reply_markup=ReplyKeyboardMarkup([["да", "нет"]], one_time_keyboard=True, resize_keyboard=True)
+                reply_markup=ReplyKeyboardMarkup(with_main_menu_button([["да", "нет"]]),
+                                                 one_time_keyboard=True, resize_keyboard=True)
             )
             return SPECIALITY_CHECK
         elif context.user_data['profession'] == "стоматолог":
-            await update.message.reply_text("Сколько лет у вас стоматологического стажа?")
+            await update.message.reply_text("Сколько лет у вас стоматологического стажа?",
+                                            reply_markup=ReplyKeyboardMarkup(with_main_menu_button([]),
+                                                                             one_time_keyboard=True, resize_keyboard=True))
             return EXPERIENCE
     else:
         await update.message.reply_text("Без высшего образования лицензия невозможна.")
         return ConversationHandler.END
-
 async def speciality_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
+   if update.message.text == "⬅️ Главное меню":
+       return await start(update, context)
+
     context.user_data['speciality_match'] = (update.message.text.lower() == "да")
     await update.message.reply_text("Сколько лет у вас стажа?")
     return EXPERIENCE
 
 async def experience(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text == "⬅️ Главное меню":
+    return await start(update, context)
+
     try:
         context.user_data['experience'] = int(update.message.text)
     except ValueError:
@@ -138,33 +160,45 @@ async def experience(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return POSTGRADUATE_EDU
 
 async def postgraduate_edu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text == "⬅️ Главное меню":
+        return await start(update, context)
+
     context.user_data['postgraduate_edu'] = update.message.text
     if update.message.text in ["Ординатура 3+ лет или резидентура 3+ лет", "Аспирантура и КМН"]:
         await update.message.reply_text("Прошло ли 3 года после окончания постдипломного образования?",
-                                        reply_markup=ReplyKeyboardMarkup([["да", "нет"]],
+                                        reply_markup=ReplyKeyboardMarkup(with_main_menu_button([["да", "нет"]]),
                                                                          one_time_keyboard=True, resize_keyboard=True))
         return POSTGRADUATE_YEARS
     else:
         await update.message.reply_text("Есть ли у вас аккредитация?",
-                                        reply_markup=ReplyKeyboardMarkup([["да", "нет"]],
+                                        reply_markup=ReplyKeyboardMarkup(with_main_menu_button([["да", "нет"]]),
                                                                          one_time_keyboard=True, resize_keyboard=True))
         return ACCREDITATION
 
 async def postgraduate_years(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text == "⬅️ Главное меню":
+        return await start(update, context)
+
     context.user_data['postgraduate_years_passed'] = (update.message.text.lower() == "да")
     await update.message.reply_text("Есть ли у вас аккредитация?",
-                                    reply_markup=ReplyKeyboardMarkup([["да", "нет"]],
+                                    reply_markup=ReplyKeyboardMarkup(with_main_menu_button([["да", "нет"]]),
                                                                      one_time_keyboard=True, resize_keyboard=True))
     return ACCREDITATION
 
 async def accreditation(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text == "⬅️ Главное меню":
+        return await start(update, context)
+
     context.user_data['accreditation'] = (update.message.text.lower() == "да")
     await update.message.reply_text("Вы из России?",
-                                    reply_markup=ReplyKeyboardMarkup([["да", "нет"]],
+                                    reply_markup=ReplyKeyboardMarkup(with_main_menu_button([["да", "нет"]]),
                                                                      one_time_keyboard=True, resize_keyboard=True))
     return FROM_RUSSIA
 
 async def from_russia(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text == "⬅️ Главное меню":
+        return await start(update, context)
+
     context.user_data['from_russia'] = (update.message.text.lower() == "да")
     result = determine_license(context.user_data)
     await update.message.reply_text(
@@ -216,15 +250,11 @@ def determine_license(data):
 
     return "⛔️Можно попробовать только на Beauty Therapist или Anti-Age."
 async def send_template(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text == "⬅️ Главное меню":
+        return await start(update, context)
+
     await update.message.reply_text(
         templates.get(update.message.text, "⚠️ Шаблон не найден.") + "\n\n⬅️ Вернуться в главное меню:",
-        reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
-    )
-    return CHOOSING
-
-async def send_program(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        programs.get(update.message.text, "⚠️ Программа не найдена.") + "\n\n⬅️ Вернуться в главное меню:",
         reply_markup=ReplyKeyboardMarkup(main_keyboard, resize_keyboard=True)
     )
     return CHOOSING
